@@ -1,0 +1,49 @@
+struct Env {
+
+struct Trapframe env_tf; // Saved registers
+
+LIST_ENTRY(Env) env_link; // Free LIST_ENTRY
+
+u_int env_id; // Unique environment identifier
+
+u_int env_parent_id; // env_id of this env's parent
+
+u_int env_status; // Status of the environment
+
+Pde *env_pgdir; // Kernel virtual address of page dir
+
+u_int env_cr3;
+
+LIST_ENTRY(Env) env_sched_link;
+
+u_int env_pri;
+
+ };
+
+为了集中你的注意力在关键的地方，我们暂时不介绍其他实验所需介绍的内容。下面是lab3 中需要用到的这些域的一些简单说明：
+
+env_tf : Trapframe 结构体的定义在include/trap.h 中，env_tf 的作用就是在进程因为时间片用光不再运行时，将其当时的进程上下文环境保存在env_tf 变量中。当从用户模式切换到内核模式时，内核也会保存进程上下文，因此进程返回时上下文可以从中恢复。
+
+env_link : env_link 的机制类似于实验二中的pp_link, 使用它和env_free_list来构造空闲进程链表。
+
+env_id : 每个进程的env_id 都不一样，env_id 是进程独一无二的标识符。
+
+env_parent_id : 该变量存储了创建本进程的进程id。这样进程之间通过父子进程之间的关联可以形成一颗进程树。
+
+env_status : 该变量只能在以下三个值中进行取值：
+  – ENV_FREE : 表明该进程是不活动的，即该进程控制块处于进程空闲链表中。
+
+  – ENV_NOT_RUNNABLE : 表明该进程处于阻塞状态，处于该状态的进程往往在等待一定的条件才可以变为就
+绪状态从而被CPU 调度。
+
+  – ENV_RUNNABLE : 表明该进程处于就绪状态，正在等待被调度，但处于RUNNABLE 状态的进程可以是正在运行的，也可能不在运行中。
+
+env_pgdir : 这个变量保存了该进程页目录的虚拟地址。
+
+env_cr3 : 这个变量保存了该进程页目录的物理地址。
+
+env_sched_link : 这个变量来构造就绪状态进程链表。
+
+env_pri : 这个变量保存了该进程的优先级。
+
+这里值得强调的一点就是 ENV_RUNNABLE 状态并不代表进程一定在运行中，它也可能正处于调度队列中。而我们的进程调度也只会调度处于RUNNABLE 状态的进程。
